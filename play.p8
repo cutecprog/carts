@@ -2,53 +2,101 @@ pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
 function _init()
+ mode = move_around
 end
 
 function _update()
- move_around()
+ mode()
 end
 
 function _draw()
- cls()
- map(0,0,-pc.posx,-pc.posy,16,16)
- spr(1,64,64)
+ move_around_draw()
 end
 -->8
 --player
-pc = {posx=0, posy=0, speed=3}
+pc =
+{
+ posx=0,
+ posy=0,
+ speed=3,
+ bearing=0
+}
 -->8
 --util
-function btni(key)
- return btn(key) and 1 or 0
+comp =
+{{-.707,-.707},{0,-1},
+ {.707,-.707},{1,0},
+ {.707,.707},{0,1},
+ {-.707,.707},{-1,0}}
+
+function dpad_bearing()
+ if btn(⬅️) then
+  if btn(⬆️) then
+   return 0
+  elseif btn(⬇️) then
+   return 6
+  else
+   return 7
+  end
+ elseif btn(➡️) then
+  if btn(⬆️) then
+   return 2
+  elseif btn(⬇️) then
+   return 4
+  else
+   return 3
+  end
+ elseif btn(⬆️) then
+  return 1
+ elseif btn(⬇️) then
+  return 5
+ end
+ return false
 end
 
+function move(self, speed, bearing)
+ self.posx += speed * comp[bearing+1][1]
+ self.posy += speed * comp[bearing+1][2]
+end
+-->8
+--update and draw functions
 function move_around()
  local speed = pc.speed
+ local _bearing = dpad_bearing()
  if btn(❎) then
   speed *= 1.5
  end
  if btnp(🅾️) then
-  sfx(0)
+  mode = select_action
  end
- move(pc,speed,⬅️,➡️,⬆️,⬇️)
+ if _bearing then
+  pc.bearing = _bearing
+  move(pc,speed, pc.bearing)
+ end
 end
 
-function move(self,speed,l,r,u,d)
- if btni(l)+btni(r)
-    +btni(u)+btni(d) == 2 then
-  speed *= .707
+function move_around_draw()
+ cls()
+ map(0,0,-pc.posx,-pc.posy,16,16)
+ spr(1,60,60)
+end
+
+function select_action()
+ if btnp(❎) then
+  mode = move_around
  end
- if(btn(l)) then
-  self.posx-=speed
+ if btnp(🅾️) then
+  sfx(0)
  end
- if(btn(r)) then
-  self.posx+=speed
- end
-  if(btn(u)) then
-  self.posy-=speed
- end
-  if(btn(d)) then
-  self.posy+=speed
+end
+-->8
+--test code
+function test_update()
+ bearing = dpad_bearing()
+ if bearing then
+ 	print(comp[bearing+1][1])
+ 	print(comp[bearing+1][2])
+ 	print('------------')
  end
 end
 __gfx__
