@@ -17,61 +17,44 @@ end
 pc =
 {
  posx=0,
- posy=0,
- speed=3,
- bearing=0
+ posy=0
 }
 -->8
 --util
-comp =
-{{-.707,-.707},{0,-1},
- {.707,-.707},{1,0},
- {.707,.707},{0,1},
- {-.707,.707},{-1,0}}
-
-function dpad_bearing()
- if btn(⬅️) then
-  if btn(⬆️) then
-   return 0
-  elseif btn(⬇️) then
-   return 6
-  else
-   return 7
-  end
- elseif btn(➡️) then
-  if btn(⬆️) then
-   return 2
-  elseif btn(⬇️) then
-   return 4
-  else
-   return 3
-  end
- elseif btn(⬆️) then
-  return 1
- elseif btn(⬇️) then
-  return 5
- end
- return false
+comp = {}
+for i=0, 7 do
+ comp[i] =
+   {sin(i/8), cos(i/8)}
 end
 
-function move(self, speed, bearing)
- self.posx += speed * comp[bearing+1][1]
- self.posy += speed * comp[bearing+1][2]
+dpad_angle={}
+--_dpad_bf holds dpad bit fields
+local _dpad_bf = 
+  {8,9,1,5,4,6,2,10}
+for i=1,8 do
+ --relate an angle value to
+ --a specific bit field
+ dpad_angle[_dpad_bf[i]] = i-1 
+end
+
+
+function move(self, fast, angle)
+ local speed =
+  fast == 0 and 3 or 4.5
+ self.posx += speed * comp[angle][1]
+ self.posy += speed * comp[angle][2]
 end
 -->8
 --update and draw functions
 function move_around()
- local speed = pc.speed
- local _bearing = dpad_bearing()
- if btn(❎) then
-  speed *= 1.5
- end
- if btnp(🅾️) then
-  mode = select_action
- end
- if _bearing then
-  pc.bearing = _bearing
-  move(pc,speed, pc.bearing)
+ --🅾️
+ if(btnp()&16!=0)mode=select_action
+ 
+ --⬇️⬆️➡️⬅️
+ if btn()&15 != 0 then
+  local th=dpad_angle[btn()&15]
+  --❎
+  if(th) move(pc, btn()&32, th)
  end
 end
 
