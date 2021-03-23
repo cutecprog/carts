@@ -6,32 +6,34 @@ function _init()
  mode = move_around
 end
 
-function _update()
+function _update60()
  mode()
- ticks += 1
+ ticks += 1 -- = ftime()
 end
 
 function _draw()
  draw_move_around()
+ print(pc.c,40,40)
 end
 -->8
 --update and draw functions
 function move_around()
- --🅾️
  if(btnp()&16!=0) mode=act_menu
- --⬇️⬆️➡️⬅️
+  --🅾️
  if btn()&15 != 0 then
+  --⬇️⬆️➡️⬅️
   local th=dpad_angle[btn()&15]
-  --❎
   if(th) move(pc, btn()&32, th)
- else pc.c = 1
+   --❎
+ else
+  pc.c = 2
  end
 end
 
 function draw_move_around()
  cls()
  map(0,0,0,0,16,16)
- spr(pc.fr[pc.c],pc.posx,
+ spr(pc.c+pc.fr[2],pc.posx,
      pc.posy,1,1,pc.flipx)
 end
 
@@ -45,47 +47,65 @@ function act_menu()
 end
 -->8
 --frequently called functions
-
+--warning: optimized code ahead
 function move(self, spd, th)
  --move self by a 4-bit vector
  --spd 1-bit (slow or fast)
- --th 3-bit (45 deg resolution) 
+ --th 3-bit (45 deg resolution)
+ if ticks%4==3 then
+  --every 4 ticks
+  self.c=(self.c + 1)%2
+  --self.c+=1
+ end
+ if spd == 0 and ticks%2==1
+  --if spd==0 skip 0dd ticks
+  or th%2==1 and ticks%5==0
+  and rnd(999) < 883 then 
+  --if diagonal skip 1/5 ticks
+  -- * 883/999 = .707107...
+  return
+ end 
  local compx = comp[th][1] 
- local speed =
-  spd == 0 and .98 or 1.95
  if compx < 0 then
   self.flipx = false
  elseif compx > 0 then
   self.flipx = true
  end
- if(ticks%4==0) then
-  self.c = (self.c + 1)%3 +1
- end 
- self.posx += speed 
-  * compx
- self.posy += speed 
-  * comp[th][2]
+ self.posx += compx
+ self.posy += comp[th][2]
 end
 -->8
 --secret __init__
 function __init__()
+ local rsin =
+  --rounded pico8 sin values
+  --each step is 1/8 of circle
+  {[0]=0,-1,-1,-1,0,1,1,1}
+
+ local dpad_bf =
+  --holds dpad bit fields
+  --⬇️⬆️➡️⬅️
+  {0b0010,0b0110,0b0100,0b0101,
+   0b0001,0b1001,0b1000,0b1010}
+
  ticks = 0
- 
- --init a table
+
  comp = {}
- for i=0, 7 do
-  comp[i] = {sin(i/8), cos(i/8)}
+  --relates an angle to values
+  --to add to posx, posy
+  --0={1,0},1={1,-1}...7={1,1}
+ for i=0,7 do
+  comp[i] =
+   --{cos(i)=x, sin(i)=y }
+   {rsin[(i-2)%8],rsin[i]}
  end
 
- --init a table
  dpad_angle={}
- --_dpad_bf holds dpad bit fields
- local _dpad_bf = 
-  {8,9,1,5,4,6,2,10}
- for i=1,8 do
-  --relate an angle value to
+  --relates an angle to
   --a specific bit field
-  dpad_angle[_dpad_bf[i]] = i-1 
+  --➡️=0, ⬆️➡️=1...⬇️=6,⬇️➡️=7
+ for i=1,8 do
+  dpad_angle[dpad_bf[i]] = i-1 
  end
 end
 -->8
@@ -95,8 +115,8 @@ pc =
  posx=60,
  posy=60,
  flipx=false,
- fr={17,18,19},
- c=1
+ fr={[0]=18,19,17},
+ c=0
 }
 __gfx__
 00000000011111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
